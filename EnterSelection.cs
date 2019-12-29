@@ -28,7 +28,7 @@ namespace U3
     public Selection Append<T>() where T : VisualElement, new()
       => new Selection(
         Groups.Select(groupWithData =>
-          new Selection.GroupWithData(groupWithData.GroupParent, null,
+          new Selection.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(new T()).BindData(dataBind)).ToArray())
         ).ToArray()
       );
@@ -36,7 +36,7 @@ namespace U3
     public Selection Append(VisualTreeAsset asset)
       => new Selection(
             Groups.Select(groupWithData =>
-              new Selection.GroupWithData(groupWithData.GroupParent, null,
+              new Selection.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(asset.CloneTree().contentContainer).BindData(dataBind)).ToArray())
             ).ToArray()
     );

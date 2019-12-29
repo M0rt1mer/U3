@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using UnityEngine.UIElements;
 
 namespace U3
@@ -22,13 +21,11 @@ namespace U3
     internal struct GroupWithData
     {
       public readonly VisualElement GroupParent;
-      public readonly IReadOnlyCollection<object> Bindings;
       public readonly IReadOnlyCollection<VisualElement> Elements;
 
-      public GroupWithData(VisualElement groupParent, IReadOnlyCollection<object> bindings, IReadOnlyCollection<VisualElement> elements)
+      public GroupWithData(VisualElement groupParent, IReadOnlyCollection<VisualElement> elements)
       {
         GroupParent = groupParent;
-        Bindings = bindings ?? EmptyCollection.Instance;
         Elements = elements;
       }
     }
@@ -45,7 +42,7 @@ namespace U3
     #region constructors
     public Selection(VisualElement[] selected)
     {
-      _groups = new GroupWithData[]{ new GroupWithData(null, null, selected) };
+      _groups = new GroupWithData[]{ new GroupWithData(null, selected) };
       _enterSelection = null;
       _exitSelection = null;
     }
@@ -62,11 +59,12 @@ namespace U3
 
     public Selection SelectAll<T>(string name) where T : VisualElement
     {
-      return new Selection(_groups.SelectMany(
-        group => group.Elements.Zip(group.Bindings.DefaultIfEmpty(), //for each group, create a pairs of (elements,bindings)
-          (element, binding) => new GroupWithData(element,           //from each of these bindings, create new group with given element as parent
-                                                  binding is IReadOnlyCollection<object> typedBinding ? typedBinding : null, //if this elements binding is readOnlyCollection, apply it to new group
-                                                  element.Children().Where( child => child is T && (name==null || child.name.Equals(name) ) ).ToArray()))).ToArray() //expand children
+      return new Selection(_groups.SelectMany
+        (
+          group => group.Elements.Select(
+           element => new GroupWithData(element, element.Children().Where( child => child is T && (name==null || child.name.Equals(name) ) ).ToArray())
+          )
+        ).ToArray() //expand children
       );
     }
 
@@ -110,7 +108,7 @@ namespace U3
                 foreach (var child in thisElem.Children())
                   searchIn.Enqueue(child);
               }
-              return new GroupWithData(element, null, found.ToArray());
+              return new GroupWithData(element, found.ToArray());
             }
           )
         ).ToArray()
@@ -129,7 +127,7 @@ namespace U3
 
       return new Selection(other._groups.Select(
           group => groupsByParent.ContainsKey(@group.GroupParent)
-            ? new GroupWithData(@group.GroupParent, @group.Bindings,
+            ? new GroupWithData(@group.GroupParent,
               @group.Elements.Concat(groupsByParent[@group.GroupParent]).ToArray())
             : @group)
         .Concat(_groups.Where(group => !otherParents.Contains(group.GroupParent))).ToArray()
@@ -146,13 +144,11 @@ namespace U3
     {
       foreach (var groupWithData in _groups)
       {
-        int id = 0;
-        groupWithData.Elements.Zip(groupWithData.Bindings.DefaultIfEmpty(),
-          (element, binding) =>
-          {
-            dlgt(element, binding, id++);
-            return 0; // zip has to return something
-          });
+        var id = 0;
+        foreach (var visualElement in groupWithData.Elements)
+        {
+          dlgt(visualElement, visualElement.GetBoundData(), id++);
+        }
       }
       return this;
     }
@@ -161,9 +157,8 @@ namespace U3
     {
       foreach (var groupWithData in _groups)
       {
-        groupWithData.Elements.DoubleIterate(groupWithData.Bindings).ForEach((tuple) => { if (tuple.Item1 is Label label) label.text = dataFnc(tuple.Item1, tuple.Item2); });
+        groupWithData.Elements.ForEach( element => { if (element is Label label) label.text = dataFnc(element, element.GetBoundData()); });
       }
-
       return this;
     }
 
@@ -176,8 +171,7 @@ namespace U3
       return Bind((a, b) => bindings);
     }
 
-    public Selection Bind(
-      Func<VisualElement, IReadOnlyCollection<VisualElement>, IReadOnlyCollection<object>> bindingFunc)
+    public Selection Bind( Func<object, IReadOnlyCollection<VisualElement>, IReadOnlyCollection<object>> bindingFunc)
     {
       var enters = new EnterSelection.EnterGroup[_groups.Length];
       var updates = new GroupWithData[_groups.Length];
@@ -185,7 +179,7 @@ namespace U3
 
       for (var i = 0; i < _groups.Length; ++i)
       {
-        var tuple = Bind(_groups[i], bindingFunc(_groups[i].GroupParent, _groups[i].Elements));
+        var tuple = Bind(_groups[i], bindingFunc(_groups[i].GroupParent.GetBoundData(), _groups[i].Elements));
 
         enters[i] = tuple.Item1;
         updates[i] = tuple.Item2;
@@ -198,21 +192,21 @@ namespace U3
     }
 
     private static Tuple<EnterSelection.EnterGroup, GroupWithData, GroupWithData> Bind(GroupWithData group,
-      IEnumerable<object> bindings)
+      IReadOnlyCollection<object> bindings)
     {
-      var dataLookup = new HashSet<object>(group.Bindings as IEnumerable<object>);
+      var dataLookup = new HashSet<object>(bindings as IEnumerable<object>);
       var existingData = new HashSet<object>(group.Elements.Select(element => element.userData));
 
-      var exit = group.Elements.Zip(bindings, Tuple.Create<VisualElement,object> ).Where( tuple => !dataLookup.Contains(tuple.Item1.userData)).Unzip();
-      var update = group.Elements.Zip(bindings, Tuple.Create<VisualElement, object>).Where(tuple => dataLookup.Contains(tuple.Item1.userData)).Unzip();
+      var exit = group.Elements.Where(element => element.GetBoundData() == null || !dataLookup.Contains( element.GetBoundData())).ToArray();
+      var update = group.Elements.Where(element => element.GetBoundData() != null && dataLookup.Contains( element.GetBoundData() )).ToArray();
 
       dataLookup.ExceptWith(existingData);
       var enter = dataLookup.ToArray();
 
       return Tuple.Create(
         new EnterSelection.EnterGroup( group.GroupParent, enter ),
-        new GroupWithData(group.GroupParent, update.Item2.ToArray(), update.Item1.ToArray()),
-        new GroupWithData(group.GroupParent, exit.Item2.ToArray(), exit.Item1.ToArray())
+        new GroupWithData(group.GroupParent, update),
+        new GroupWithData(group.GroupParent, exit)
       );
     }
 
@@ -253,7 +247,7 @@ namespace U3
     public Selection Append<T>() where T:VisualElement, new()
     => new Selection(
           _groups.Select( groupWithData => 
-              new GroupWithData(groupWithData.GroupParent, groupWithData.Bindings, 
+              new GroupWithData(groupWithData.GroupParent,
                 groupWithData.Elements.Select(element => element.Append(new T())).ToArray())
           ).ToArray()
       );
@@ -261,7 +255,7 @@ namespace U3
     public Selection Append(VisualTreeAsset asset)
     => new Selection(
       _groups.Select(groupWithData => 
-        new GroupWithData(groupWithData.GroupParent, groupWithData.Bindings,
+        new GroupWithData(groupWithData.GroupParent,
           groupWithData.Elements.Select(element => element.Append(asset.CloneTree().contentContainer)).ToArray())
         ).ToArray()
       );

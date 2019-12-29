@@ -44,5 +44,10 @@ namespace U3
       return element;
     }
 
+    public static object GetBoundData(this VisualElement element)
+    {
+      return element.userData;
+    }
+
   }
 }
