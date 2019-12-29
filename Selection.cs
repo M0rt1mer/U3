@@ -6,17 +6,9 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
-  public struct Selection
+  public class Selection
   {
     #region structs
-    
-    private class EmptyCollection : IReadOnlyCollection<object>
-    {
-      IEnumerator IEnumerable.GetEnumerator() { yield break; }
-      public IEnumerator<object> GetEnumerator() { yield break; }
-      public int Count => 0;
-      public static EmptyCollection Instance = new EmptyCollection();
-    }
 
     internal struct GroupWithData
     {
@@ -34,11 +26,12 @@ namespace U3
     #region attributes
 
     private GroupWithData[] _groups;
-    private EnterSelection? _enterSelection;
-    private Selection? _exitSelection;
+    private EnterSelection _enterSelection;
+    private Selection _exitSelection;
 
+    
     #endregion
-
+    
     #region constructors
     public Selection(VisualElement[] selected)
     {
@@ -53,8 +46,10 @@ namespace U3
       _enterSelection = null;
       _exitSelection = null;
     }
-    #endregion
 
+    public Selection(){}
+    #endregion
+    
     #region selecting
 
     public Selection SelectAll<T>(string name) where T : VisualElement
@@ -114,7 +109,7 @@ namespace U3
         ).ToArray()
       );
     }
-
+    
     /// <summary>
     /// Merges this selection into the other, using other's bindings
     /// </summary>
@@ -259,8 +254,8 @@ namespace U3
           groupWithData.Elements.Select(element => element.Append(asset.CloneTree().contentContainer)).ToArray())
         ).ToArray()
       );
-
+      
     #endregion
-
+    
   }
 }

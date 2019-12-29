@@ -1,4 +1,5 @@
-﻿using UnityEngine.UIElements;
+﻿using System.Linq;
+using UnityEngine.UIElements;
 
 namespace U3
 {
@@ -47,6 +48,11 @@ namespace U3
     public static object GetBoundData(this VisualElement element)
     {
       return element.userData;
+    }
+
+    public static VisualElement FirstChild(this VisualElement element)
+    {
+      return element.childCount == 0 ? null : element.Children().First();
     }
 
   }

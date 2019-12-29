@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
-  public struct EnterSelection
+  public class EnterSelection
   {
 
     public struct EnterGroup
@@ -25,6 +25,8 @@ namespace U3
       Groups = groups;
     }
 
+    public EnterSelection() {}
+
     public Selection Append<T>() where T : VisualElement, new()
       => new Selection(
         Groups.Select(groupWithData =>
@@ -37,9 +39,9 @@ namespace U3
       => new Selection(
             Groups.Select(groupWithData =>
               new Selection.GroupWithData(groupWithData.GroupParent,
-            groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(asset.CloneTree().contentContainer).BindData(dataBind)).ToArray())
+            groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(asset.CloneTree().contentContainer.FirstChild()).BindData(dataBind)).ToArray())
             ).ToArray()
     );
-
+    
   }
 }
