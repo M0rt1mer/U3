@@ -166,6 +166,16 @@ namespace U3
       return this;
     }
 
+    public Selection SetEnabled(bool enabled)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        groupWithData.Elements.ForEach(element => element.SetEnabled(enabled));
+      }
+
+      return this;
+    }
+
     #endregion operations
 
     #region data
