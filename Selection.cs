@@ -157,6 +157,15 @@ namespace U3
       return this;
     }
 
+    public Selection AddClass(string className)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        groupWithData.Elements.ForEach(element => element.AddToClassList(className));
+      }
+      return this;
+    }
+
     #endregion operations
 
     #region data
