@@ -4,14 +4,14 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
-  public class EnterSelection
+  public class EnterSelection<DataType>
   {
 
     public struct EnterGroup
     {
       public readonly VisualElement GroupParent;
-      public readonly IReadOnlyCollection<object> Bindings;
-      public EnterGroup(VisualElement groupParent, IReadOnlyCollection<object> bindings)
+      public readonly IReadOnlyCollection<DataType> Bindings;
+      public EnterGroup(VisualElement groupParent, IReadOnlyCollection<DataType> bindings)
       {
         GroupParent = groupParent;
         Bindings = bindings;
@@ -27,18 +27,18 @@ namespace U3
 
     public EnterSelection() {}
 
-    public Selection Append<T>() where T : VisualElement, new()
-      => new Selection(
+    public Selection<T,DataType> Append<T>() where T : VisualElement, new()
+      => new Selection<T,DataType>(
         Groups.Select(groupWithData =>
-          new Selection.GroupWithData(groupWithData.GroupParent,
+          new Selection<T,DataType>.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(new T()).BindData(dataBind)).ToArray())
         ).ToArray()
       );
 
-    public Selection Append(VisualTreeAsset asset)
-      => new Selection(
+    public Selection<VisualElement,DataType> Append(VisualTreeAsset asset)
+      => new Selection<VisualElement,DataType>(
             Groups.Select(groupWithData =>
-              new Selection.GroupWithData(groupWithData.GroupParent,
+              new Selection<VisualElement,DataType>.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(asset.CloneTree().contentContainer.FirstChild()).BindData(dataBind)).ToArray())
             ).ToArray()
     );

@@ -33,13 +33,15 @@ namespace U3
 
     public static void EnterNoop(VisualElement element, object dataBinding) {}
 
-    public static VisualElement Append(this VisualElement element, VisualElement newChild)
+    public static T Append<T>(this VisualElement element, T newChild)
+      where T: VisualElement
     {
       element.Add(newChild);
       return newChild;
     }
 
-    public static VisualElement BindData(this VisualElement element, object data)
+    public static T BindData<T>(this T element, object data)
+      where T:VisualElement
     {
       element.userData = data;
       return element;
