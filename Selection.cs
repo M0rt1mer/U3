@@ -8,43 +8,49 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
-  public class Selection<ElementType, DataType>
-    where ElementType : VisualElement
+  public partial class Selection<TElementType, TDataType>
+    where TElementType : VisualElement
   {
     #region structs
 
     internal struct GroupWithData
     {
       public readonly VisualElement GroupParent;
-      public readonly IReadOnlyCollection<ElementType> Elements;
+      public readonly IReadOnlyCollection<TElementType> Elements;
 
-      public GroupWithData(VisualElement groupParent, IReadOnlyCollection<ElementType> elements)
+      public GroupWithData(VisualElement groupParent, IReadOnlyCollection<TElementType> elements)
       {
         GroupParent = groupParent;
         Elements = elements;
       }
-      public GroupWithData(VisualElement groupParent, IEnumerable<ElementType> elements) : this(groupParent, elements.ToArray()){}
+      public GroupWithData(VisualElement groupParent, IEnumerable<TElementType> elements) : this(groupParent, elements.ToArray()){}
     }
     #endregion
 
     #region attributes
 
     private IReadOnlyCollection<GroupWithData> _groups;
-    private EnterSelection<DataType> _enterSelection;
-    private Selection<ElementType,DataType> _exitSelection;
-
+    private EnterSelection<TDataType> _enterSelection;
+    private Selection<TElementType,TDataType> _exitSelection;
     
     #endregion
     
+    #region Properties
+    
+    public EnterSelection<TDataType> Enter => _enterSelection ?? new EnterSelection<TDataType>();
+    public Selection<TElementType,TDataType> Exit => _exitSelection ?? new Selection<TElementType,TDataType>();
+    public IReadOnlyCollection<GroupWithData> Groups => _groups;
+    #endregion
+
     #region constructors
-    public Selection(IReadOnlyCollection<ElementType> selected)
+    public Selection(IReadOnlyCollection<TElementType> selected)
     {
       _groups = new []{ new GroupWithData(null, selected) };
       _enterSelection = null;
       _exitSelection = null;
     }
 
-    public Selection(IEnumerable<ElementType> selected) : this(selected.ToArray()) {}
+    public Selection(IEnumerable<TElementType> selected) : this(selected.ToArray()) {}
 
     internal Selection(IReadOnlyCollection<GroupWithData> groups)
     {
@@ -124,20 +130,20 @@ namespace U3
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public Selection<ElementType,DataType> MergeFrom<T>(Selection<T,DataType> other)
-      where T: ElementType
+    public Selection<TElementType,TDataType> MergeFrom<T>(Selection<T,TDataType> other)
+      where T: TElementType
     {
-      var groupsByParent = _groups.ToDictionary(group => group.GroupParent, group => (IEnumerable<ElementType>) group.Elements );
+      var groupsByParent = _groups.ToDictionary(group => group.GroupParent, group => (IEnumerable<TElementType>) group.Elements );
       var otherParents = new HashSet<VisualElement>( other._groups.Select(group=>group.GroupParent) );
 
-      IEnumerable<ElementType> GetGroupIfExists(VisualElement parent)
+      IEnumerable<TElementType> GetGroupIfExists(VisualElement parent)
       {
         if (groupsByParent.ContainsKey(parent))
           foreach (var visualElement in groupsByParent[parent])
             yield return visualElement;
       }
 
-      return new Selection<ElementType,DataType>(
+      return new Selection<TElementType,TDataType>(
           other._groups
             .Select( //groups in other, merged with groups in this, matched by parent (or unmerged, IF no parent matched)
               othersGroup => new GroupWithData(othersGroup.GroupParent,
@@ -152,66 +158,18 @@ namespace U3
 
      #endregion
 
-    #region operations
-
-    public delegate void CallDelegate(VisualElement element, object dataBinding, int idInSelection);
-
-    public Selection<ElementType,DataType> Call(CallDelegate dlgt)
-    {
-      foreach (var groupWithData in _groups)
-      {
-        var id = 0;
-        foreach (var visualElement in groupWithData.Elements)
-        {
-          dlgt(visualElement, visualElement.GetBoundData(), id++);
-        }
-      }
-      return this;
-    }
-
-    public Selection<ElementType,DataType> Label(Func<ElementType, DataType, string> dataFnc)
-    {
-      Debug.Assert(typeof(ElementType) == typeof(Label));
-      foreach (var groupWithData in _groups)
-      {
-        groupWithData.Elements.ForEach( element => { (element as Label).text = dataFnc(element, (DataType) element.GetBoundData()); });
-      }
-      return this;
-    }
-
-    public Selection<ElementType,DataType> AddClass(string className)
-    {
-      foreach (var groupWithData in _groups)
-      {
-        groupWithData.Elements.ForEach(element => element.AddToClassList(className));
-      }
-      return this;
-    }
-
-    public Selection<ElementType,DataType> SetEnabled(bool enabled)
-    {
-      foreach (var groupWithData in _groups)
-      {
-        groupWithData.Elements.ForEach(element => element.SetEnabled(enabled));
-      }
-
-      return this;
-    }
-
-    #endregion operations
-
     #region data
 
-    public Selection<ElementType,NewDataType> Bind<NewDataType>(IReadOnlyCollection<NewDataType> bindings)
+    public Selection<TElementType,TNewDataType> Bind<TNewDataType>(IReadOnlyCollection<TNewDataType> bindings)
     {
       return Bind((a, b) => bindings);
     }
 
-    public Selection<ElementType,NewDataType> Bind<NewDataType>( Func<object, IReadOnlyCollection<ElementType>, IReadOnlyCollection<NewDataType>> bindingFunc)
+    public Selection<TElementType,TNewDataType> Bind<TNewDataType>( Func<object, IReadOnlyCollection<TElementType>, IReadOnlyCollection<TNewDataType>> bindingFunc)
     {
-      var enters = new EnterSelection<NewDataType>.EnterGroup[_groups.Count];
-      var updates = new Selection<ElementType,NewDataType>.GroupWithData[_groups.Count];
-      var exits = new Selection<ElementType,NewDataType>.GroupWithData[_groups.Count];
+      var enters = new EnterSelection<TNewDataType>.EnterGroup[_groups.Count];
+      var updates = new Selection<TElementType,TNewDataType>.GroupWithData[_groups.Count];
+      var exits = new Selection<TElementType,TNewDataType>.GroupWithData[_groups.Count];
 
       int counter = 0;
       foreach (var groupWithData in _groups)
@@ -223,42 +181,39 @@ namespace U3
         exits[counter] = tuple.Item3;
       }
 
-      var enterSelection = new EnterSelection<NewDataType>(enters);
-      var exitSelection = new Selection<ElementType,NewDataType>(exits);
-      return new Selection<ElementType,NewDataType>(updates) { _enterSelection = enterSelection, _exitSelection = exitSelection };
+      var enterSelection = new EnterSelection<TNewDataType>(enters);
+      var exitSelection = new Selection<TElementType,TNewDataType>(exits);
+      return new Selection<TElementType,TNewDataType>(updates) { _enterSelection = enterSelection, _exitSelection = exitSelection };
     }
 
-    private static Tuple<EnterSelection<NewDataType>.EnterGroup, Selection<ElementType,NewDataType>.GroupWithData, Selection<ElementType,NewDataType>.GroupWithData> Bind<NewDataType>(GroupWithData group,
-      IReadOnlyCollection<NewDataType> bindings)
+    private static Tuple<EnterSelection<TNewDataType>.EnterGroup, Selection<TElementType,TNewDataType>.GroupWithData, Selection<TElementType,TNewDataType>.GroupWithData> Bind<TNewDataType>(GroupWithData group,
+      IReadOnlyCollection<TNewDataType> bindings)
     {
-      var dataLookup = new HashSet<NewDataType>(bindings);
+      var dataLookup = new HashSet<TNewDataType>(bindings);
       var existingData = new HashSet<object>(group.Elements.Select(element => element.GetBoundData())); //type of old data is unknown at this point
 
-      var exit =   group.Elements.Where(element => !(element.GetBoundData() is NewDataType boundDataTyped) || !dataLookup.Contains( boundDataTyped ) ).ToArray();
-      var update = group.Elements.Where(element =>   element.GetBoundData() is NewDataType boundDataTyped  &&  dataLookup.Contains( boundDataTyped ) ).ToArray();
+      var exit =   group.Elements.Where(element => !(element.GetBoundData() is TNewDataType boundDataTyped) || !dataLookup.Contains( boundDataTyped ) ).ToArray();
+      var update = group.Elements.Where(element =>   element.GetBoundData() is TNewDataType boundDataTyped  &&  dataLookup.Contains( boundDataTyped ) ).ToArray();
 
-      dataLookup.ExceptWith( existingData.Is<NewDataType>() );
+      dataLookup.ExceptWith( existingData.Is<TNewDataType>() );
       var enter = dataLookup.ToArray();
 
       return Tuple.Create(
-        new EnterSelection<NewDataType>.EnterGroup( group.GroupParent, enter ),
-        new Selection<ElementType,NewDataType>.GroupWithData(group.GroupParent, update),
-        new Selection<ElementType,NewDataType>.GroupWithData(group.GroupParent, exit)
+        new EnterSelection<TNewDataType>.EnterGroup( group.GroupParent, enter ),
+        new Selection<TElementType,TNewDataType>.GroupWithData(group.GroupParent, update),
+        new Selection<TElementType,TNewDataType>.GroupWithData(group.GroupParent, exit)
       );
     }
 
-    public EnterSelection<DataType> Enter => _enterSelection ?? new EnterSelection<DataType>();
-    public Selection<ElementType,DataType> Exit => _exitSelection ?? new Selection<ElementType,DataType>();
-
-    public Selection<VisualElement,DataType> Join( VisualTreeAsset treeAsset )
+    public Selection<VisualElement,TDataType> Join( VisualTreeAsset treeAsset )
     {
       var newSelection = Enter.Append(treeAsset).MergeFrom(this);
       Exit.Remove();
       return newSelection;
     }
 
-    public Selection<ElementType,DataType> Join<T>()
-      where T : ElementType, new()
+    public Selection<TElementType,TDataType> Join<T>()
+      where T : TElementType, new()
     {
       var newSelection = this.MergeFrom(Enter.Append<T>());
       Exit.Remove();
@@ -267,37 +222,5 @@ namespace U3
 
     #endregion
 
-    #region structure
-
-    public Selection<ElementType,DataType> Remove()
-    {
-      foreach (var groupWithData in _groups)
-      {
-        foreach (var visualElement in groupWithData.Elements)
-        {
-          visualElement.parent.Remove(visualElement);
-        }
-      }
-      return new Selection<ElementType,DataType>();
-    }
-
-    public Selection<T,object> Append<T>() where T:VisualElement, new()
-    => new Selection<T,object>(
-          _groups.Select( groupWithData => 
-              new  Selection<T,object>.GroupWithData(groupWithData.GroupParent,
-                groupWithData.Elements.Select(element => element.Append(new T())).ToArray())
-          ).ToArray()
-      );
-
-    public Selection<VisualElement,object> Append(VisualTreeAsset asset)
-    => new Selection<VisualElement,object>(
-      _groups.Select(groupWithData => 
-        new Selection<VisualElement,object>.GroupWithData(groupWithData.GroupParent,
-          groupWithData.Elements.Select(element => element.Append(asset.CloneTree().contentContainer)).ToArray())
-        ).ToArray()
-      );
-      
-    #endregion
-    
   }
 }
