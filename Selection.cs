@@ -120,26 +120,32 @@ namespace U3
     }
     
     /// <summary>
-    /// Merges this selection into the other, using others ElementType
+    /// Merges this selection into the other, using my ElementType, which is more generic than other's generic type
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public Selection<T,DataType> MergeInto<T>(Selection<T,DataType> other)
+    public Selection<ElementType,DataType> MergeFrom<T>(Selection<T,DataType> other)
       where T: ElementType
     {
       var groupsByParent = _groups.ToDictionary(group => group.GroupParent, group => (IEnumerable<ElementType>) group.Elements );
       var otherParents = new HashSet<VisualElement>( other._groups.Select(group=>group.GroupParent) );
 
-      return new Selection<T,DataType>(
+      IEnumerable<ElementType> GetGroupIfExists(VisualElement parent)
+      {
+        if (groupsByParent.ContainsKey(parent))
+          foreach (var visualElement in groupsByParent[parent])
+            yield return visualElement;
+      }
+
+      return new Selection<ElementType,DataType>(
           other._groups
-            .Select(
-              othersGroup => groupsByParent.ContainsKey(othersGroup.GroupParent)
-                ? new Selection<T,DataType>.GroupWithData(othersGroup.GroupParent,
-                  othersGroup.Elements.Concat(groupsByParent[othersGroup.GroupParent].Cast<T>()))
-                : othersGroup)
-            .Concat(   _groups
-              .Where(group => !otherParents.Contains(@group.GroupParent))
-              .Select( group => new Selection<T,DataType>.GroupWithData(@group.GroupParent, @group.Elements.Cast<T>()) )
+            .Select( //groups in other, merged with groups in this, matched by parent (or unmerged, IF no parent matched)
+              othersGroup => new GroupWithData(othersGroup.GroupParent,
+                  othersGroup.Elements.Concat( GetGroupIfExists(othersGroup.GroupParent) ) )
+                )
+            .Concat( _groups // groups in this that weren't merged in previous step
+              .Where(  group => !otherParents.Contains(@group.GroupParent) )
+              .Select( group => new GroupWithData(@group.GroupParent, @group.Elements) )
             )
       );
     }
@@ -173,7 +179,7 @@ namespace U3
       return this;
     }
 
-    public Selection AddClass(string className)
+    public Selection<ElementType,DataType> AddClass(string className)
     {
       foreach (var groupWithData in _groups)
       {
@@ -182,7 +188,7 @@ namespace U3
       return this;
     }
 
-    public Selection SetEnabled(bool enabled)
+    public Selection<ElementType,DataType> SetEnabled(bool enabled)
     {
       foreach (var groupWithData in _groups)
       {
@@ -244,17 +250,17 @@ namespace U3
     public EnterSelection<DataType> Enter => _enterSelection ?? new EnterSelection<DataType>();
     public Selection<ElementType,DataType> Exit => _exitSelection ?? new Selection<ElementType,DataType>();
 
-    public Selection<ElementType,DataType> Join( VisualTreeAsset treeAsset )
+    public Selection<VisualElement,DataType> Join( VisualTreeAsset treeAsset )
     {
-      var newSelection = Enter.Append(treeAsset).MergeInto(this);
+      var newSelection = Enter.Append(treeAsset).MergeFrom(this);
       Exit.Remove();
       return newSelection;
     }
 
     public Selection<ElementType,DataType> Join<T>()
-      where T : VisualElement, new()
+      where T : ElementType, new()
     {
-      var newSelection = Enter.Append<T>().MergeInto(this);
+      var newSelection = this.MergeFrom(Enter.Append<T>());
       Exit.Remove();
       return newSelection;
     }
