@@ -56,6 +56,21 @@ namespace U3
       return this;
     }
 
+    public Selection<TElementType, TDataType> OnEvent<TEventType>(Action<TElementType, TDataType, int, TEventType> callback, TrickleDown trickle = TrickleDown.NoTrickleDown)
+      where TEventType : EventBase<TEventType>, new()
+    {
+      foreach (var groupWithData in _groups)
+      {
+        var id = 0;
+        foreach (var visualElement in groupWithData.Elements)
+        {
+          visualElement.RegisterCallback<TEventType>(
+            @event => callback(visualElement, (TDataType) visualElement.GetBoundData(), ++id, @event), trickle);
+        }
+      }
+      return this;
+    }
+
     #endregion
 
     #region structureOperations
