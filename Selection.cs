@@ -39,7 +39,7 @@ namespace U3
     
     public EnterSelection<TDataType> Enter => _enterSelection ?? new EnterSelection<TDataType>();
     public Selection<TElementType,TDataType> Exit => _exitSelection ?? new Selection<TElementType,TDataType>();
-    public IReadOnlyCollection<GroupWithData> Groups => _groups;
+    internal IReadOnlyCollection<GroupWithData> Groups => _groups;
     #endregion
 
     #region constructors
