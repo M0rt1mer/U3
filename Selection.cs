@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using JetBrains.Annotations;
 using UnityEngine.UIElements;
@@ -196,7 +195,7 @@ namespace U3
       var update = group.Elements.Where(element =>   element.GetBoundData() is TNewDataType boundDataTyped  &&  dataLookup.Contains( boundDataTyped ) ).ToArray();
 
       dataLookup.ExceptWith( existingData.Is<TNewDataType>() );
-      var enter = dataLookup.ToArray();
+      var enter = dataLookup;
 
       return Tuple.Create(
         new EnterSelection<TNewDataType>.EnterGroup( group.GroupParent, enter ),

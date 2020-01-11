@@ -52,7 +52,15 @@ namespace U3
       {
         groupWithData.Elements.ForEach(element => element.SetEnabled(enabled));
       }
+      return this;
+    }
 
+    public Selection<TElementType, TDataType> SetVisible(bool visible)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        groupWithData.Elements.ForEach(element => element.visible = visible);
+      }
       return this;
     }
 
@@ -64,8 +72,14 @@ namespace U3
         var id = 0;
         foreach (var visualElement in groupWithData.Elements)
         {
-          visualElement.RegisterCallback<TEventType>(
-            @event => callback(visualElement, (TDataType) visualElement.GetBoundData(), ++id, @event), trickle);
+          // by using UnifiedCallbackDelegate, callback can be unregistered (as opposed to lambda)
+          visualElement.UnregisterCallback<TEventType, Action<TEventType>>
+            (U3SelectionOperationsHelper.UnifiedCallbackDelegatable);
+
+          visualElement.RegisterCallback<TEventType, Action<TEventType>>
+            ( U3SelectionOperationsHelper.UnifiedCallbackDelegatable
+            , @event => callback(visualElement, (TDataType)visualElement.GetBoundData(), id++, @event)
+            , trickle );
         }
       }
       return this;
@@ -106,4 +120,13 @@ namespace U3
     #endregion
 
   }
+
+  internal static class U3SelectionOperationsHelper
+  {
+    public static void UnifiedCallbackDelegatable<TEventType>(TEventType eventType, Action<TEventType> action)
+    {
+      action.Invoke(eventType);
+    }
+  }
+
 }
