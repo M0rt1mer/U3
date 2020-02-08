@@ -15,6 +15,13 @@ namespace U3
       return sel;
     }
 
+    public static Selection<TElementType, TDataType> Texture<TElementType, TDataType>(this Selection<TElementType, TDataType> sel, Func<TElementType, TDataType, Texture> dataFunc)
+      where TElementType : Image
+    {
+      sel.Groups.ForEach(group => group.Elements.ForEach(image => image.image = dataFunc(image, (TDataType)image.GetBoundData())) );
+      return sel;
+    }
+
   }
   #endregion
 

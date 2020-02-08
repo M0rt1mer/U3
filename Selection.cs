@@ -178,6 +178,7 @@ namespace U3
         enters[counter] = tuple.Item1;
         updates[counter] = tuple.Item2;
         exits[counter] = tuple.Item3;
+        counter++;
       }
 
       var enterSelection = new EnterSelection<TNewDataType>(enters);
