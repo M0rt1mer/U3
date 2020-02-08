@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace U3
@@ -46,6 +47,28 @@ namespace U3
       return this;
     }
 
+    public Selection<TElementType, TDataType> Classed(string className, bool hasClass)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        groupWithData.Elements.ForEach(element => element.EnableInClassList(className, hasClass));
+      }
+      return this;
+    } 
+    
+    public Selection<TElementType, TDataType> Classed(string className, Func<TElementType, TDataType, int, bool> hasClassFunc)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        var id = 0;
+        foreach (var visualElement in groupWithData.Elements)
+        {
+          visualElement.EnableInClassList(className, hasClassFunc(visualElement, (TDataType) visualElement.GetBoundData(), id++));
+        }
+      }
+      return this;
+    }
+
     public Selection<TElementType,TDataType> SetEnabled(bool enabled)
     {
       foreach (var groupWithData in _groups)
@@ -60,6 +83,19 @@ namespace U3
       foreach (var groupWithData in _groups)
       {
         groupWithData.Elements.ForEach(element => element.visible = visible);
+      }
+      return this;
+    }
+
+    public Selection<TElementType, TDataType> SetVisibleAndEnabled(bool enabled)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        groupWithData.Elements.ForEach(element =>
+        {
+          element.SetEnabled(enabled);
+          element.visible = enabled;
+        });
       }
       return this;
     }
@@ -125,7 +161,14 @@ namespace U3
   {
     public static void UnifiedCallbackDelegatable<TEventType>(TEventType eventType, Action<TEventType> action)
     {
-      action.Invoke(eventType);
+      try
+      {
+        action.Invoke(eventType);
+      }
+      catch (Exception e)
+      {
+        Debug.LogError(e);
+      }
     }
   }
 

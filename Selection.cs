@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace U3
@@ -161,6 +160,7 @@ namespace U3
 
     public Selection<TElementType,TNewDataType> Bind<TNewDataType>(IReadOnlyCollection<TNewDataType> bindings)
     {
+      Debug.Assert(bindings != null, "Bindings mustn't be null");
       return Bind((a, b) => bindings);
     }
 
