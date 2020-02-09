@@ -220,6 +220,39 @@ namespace U3
       return newSelection;
     }
 
+    public Selection<TElementType, TDataType> Order(IReadOnlyCollection<TDataType> order)
+    {
+      foreach (var groupWithData in _groups)
+      {
+        Dictionary<TDataType, TElementType> existingElements = new Dictionary<TDataType, TElementType>();
+        List<VisualElement> parents = new List<VisualElement>();
+        foreach (var element in groupWithData.Elements)
+          existingElements[(TDataType) element.GetBoundData()] = element;
+
+        foreach (var orderItem in order)
+        {
+          if (!existingElements.ContainsKey(orderItem))
+            continue;
+          var existingElement = existingElements[orderItem];
+          parents.Add(existingElement.parent);
+          existingElement.parent.Remove(existingElement);
+        }
+
+        var parentEnumerator = parents.GetEnumerator();
+        foreach (var orderItem in order)
+        {
+          if (!existingElements.ContainsKey(orderItem))
+            continue;
+          var existingElement = existingElements[orderItem];
+          parentEnumerator.Current.Add(existingElement);
+          parentEnumerator.MoveNext();
+        }
+        parentEnumerator.Dispose();
+
+      }
+      return this;
+    }
+
     #endregion
 
   }

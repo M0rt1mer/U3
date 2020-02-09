@@ -166,11 +166,14 @@ namespace U3
 
   internal static class U3SelectionOperationsHelper
   {
-    public static void UnifiedCallbackDelegatable<TEventType>(TEventType eventType, Action<TEventType> action)
+    public static void UnifiedCallbackDelegatable<TEventType>(TEventType @event, Action<TEventType> action)
+    where TEventType : EventBase<TEventType>, new()
     {
+      if (@event.propagationPhase != PropagationPhase.AtTarget)
+        return;
       try
       {
-        action.Invoke(eventType);
+        action.Invoke(@event);
       }
       catch (Exception e)
       {
