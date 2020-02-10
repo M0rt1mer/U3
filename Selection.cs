@@ -220,7 +220,7 @@ namespace U3
       return newSelection;
     }
 
-    public Selection<TElementType, TDataType> Order(IReadOnlyCollection<TDataType> order)
+    public Selection<TElementType, TDataType> RobustOrder(IReadOnlyCollection<TDataType> order)
     {
       foreach (var groupWithData in _groups)
       {
@@ -251,6 +251,45 @@ namespace U3
 
       }
       return this;
+    }
+
+    /// <summary>
+    /// Orders the selected elements by their associated data, both in the selection itself AND in VisualElement hierarchy. If any of the following conditions are not met, behaviour is undefined:
+    /// * all elements in each group have the same parent element, and it is the groups parent (this will not hold if the selection was created by Find function)
+    /// * the parent doesn't have any elements other than the selected elements
+    /// * the set of data, bound to selected elements, and the set of data in "order" argument, are identical (this can be ensured by calling Bind+Join on the same dataset
+    /// </summary>
+    /// <param name="order">A collection of data. Order of elements will correspond to order of data in this collection</param>
+    /// <returns></returns>
+    public Selection<TElementType, TDataType> FragileOrder(IReadOnlyCollection<TDataType> order)
+    {
+      return FragileOrder((_, __) => order);
+    }
+
+    /// <summary>
+    /// Orders the selected elements by their associated data, both in the selection itself AND in VisualElement hierarchy. If any of the following conditions are not met, behaviour is undefined:
+    /// * all elements in each group have the same parent element, and it is the groups parent (this will not hold if the selection was created by Find function)
+    /// * the parent doesn't have any elements other than the selected elements
+    /// * the set of data, bound to selected elements, and the set of data, provided by bindingFnc, are identical (this can be ensured by calling Bind+Join on the same dataset
+    /// * data in the set are unique
+    /// Additionally, the data set is expected to be small, as no acceleration structure is built for searching data set
+    /// </summary>
+    /// <param name="bindingFunc">A function that returns the binding set for (parent's data, element list)</param>
+    /// <returns>A selection where elements are ordered correctly</returns>
+    public Selection<TElementType, TDataType> FragileOrder(Func<object, IReadOnlyCollection<TElementType>, IReadOnlyCollection<TDataType>> bindingFunc)
+    {
+      return new Selection<TElementType, TDataType>(
+        _groups.Select(groupWithData =>
+          {
+            var collection = bindingFunc(groupWithData.GroupParent.GetBoundData(), groupWithData.Elements);
+            groupWithData.Elements.ForEach(e => e.parent.Remove(e));
+            var sortedElements = collection.Select(datum =>groupWithData.Elements.First(element =>
+                element.GetBoundData() is TDataType typedData && EqualityComparer<TDataType>.Default.Equals(typedData, datum))).ToArray();
+            sortedElements.ForEach( element => groupWithData.GroupParent.Add(element) );
+            return new GroupWithData(groupWithData.GroupParent, sortedElements);
+          }
+        ) 
+      );
     }
 
     #endregion
