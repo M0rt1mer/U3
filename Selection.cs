@@ -6,6 +6,12 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
+  ///<summary>
+  /// Selection consits of several groups
+  /// Each groups represents a simple query into the visual element hierarchy, defined by a parent object and it's descendants. This selection can be bound to a collection of data, with each descendant corresponding to a single datum in the collection.
+  ///</summary>
+  ///<typeparam name="TElementType">The type of elements in this selection. Functions like Find and Select create selection of correct type.</typeparam>
+  ///<typeparam name="TDataType">Type of bound data. Unless Bind is called, this should be 'object'.</typeparam>
   public partial class Selection<TElementType, TDataType>
     where TElementType : VisualElement
   {
@@ -35,12 +41,17 @@ namespace U3
     
     #region Properties
     
+    ///<summary>An EnterSelection represents data points, for which there is no selected element. It is usually used to create those missing elements.</summary>
+    ///<remarks>In a typical case, you would use <see href="Selection{E,T}.Join{T2}" />Join function, which handles Enter and Exit selections for you.</remarks>
     public EnterSelection<TDataType> Enter => _enterSelection ?? new EnterSelection<TDataType>();
+    ///<summary>An Exit selection represents elements, for which there is no data point. It is usually used to delete those elements.</summary>
+    ///<remarks>In a typical case, you would use <see href="Selection{E,T}.Join{T2}" />Join function, which handles Enter and Exit selections for you.</remarks>
     public Selection<TElementType,TDataType> Exit => _exitSelection ?? new Selection<TElementType,TDataType>();
     internal IReadOnlyCollection<GroupWithData> Groups => _groups;
     #endregion
 
     #region constructors
+    ///<summary>Creates a selection from a read-only collection. The collection is not copied, so Selection expects it not to change during it's existence.</summary>
     public Selection(IReadOnlyCollection<TElementType> selected)
     {
       _groups = new []{ new GroupWithData(null, selected) };
@@ -48,6 +59,7 @@ namespace U3
       _exitSelection = null;
     }
 
+    ///<summary>Creates a selection from an IEnumerable. The enumerable is enumerated when constructing to create an array.</summary>
     public Selection(IEnumerable<TElementType> selected) : this(selected.ToArray()) {}
 
     internal Selection(IReadOnlyCollection<GroupWithData> groups)
@@ -66,6 +78,8 @@ namespace U3
     
     #region selecting
 
+    ///<summary>Selects children of currently selected elements, with given class type and name.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<T,object> SelectAll<T>(string name) where T : VisualElement
     {
       return new Selection<T,object>(_groups.SelectMany
@@ -75,27 +89,36 @@ namespace U3
         ).ToArray()
       );
     }
-
+    ///<summary>Selects children of currently selected elements.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<VisualElement,object> SelectAll()
     {
       return SelectAll<VisualElement>(null);
     }
 
+    ///<summary>Selects children of currently selected elements, with given class type.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<T,object> SelectAll<T>() where T : VisualElement
     {
       return SelectAll<T>(null);
     }
 
+    ///<summary>Selects children of currently selected elements, with given name.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<VisualElement,object> SelectAll(string name)
     {
       return this.SelectAll<VisualElement>(name);
     }
 
+    ///<summary>Finds a descendant of currently selected elements, with given name.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<VisualElement,object> Find(string name)
     {
       return this.Find<VisualElement>(name);
     }
 
+    ///<summary>Finds a descendant of currently selected elements, with given class type and name.</summary>
+    ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
     public Selection<T,object> Find<T>(string name) where T : VisualElement
     {
       return new Selection<T,object>( 
@@ -124,10 +147,8 @@ namespace U3
     }
     
     /// <summary>
-    /// Merges this selection into the other, using my ElementType, which is more generic than other's generic type
+    /// Merges this selection into the other, using this selection's ElementType, which has to be more generic than other's ElementType type
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
     public Selection<TElementType,TDataType> MergeFrom<T>(Selection<T,TDataType> other)
       where T: TElementType
     {
@@ -157,13 +178,18 @@ namespace U3
      #endregion
 
     #region data
-
+    ///<summary>Binds this selection to a collection of data. This creates a new selection with Enter and Exit selections, which can then be used to create missing elements and/or delete excess elements.</summary>
+    ///<remarks>In a typical case, you would use <see href="Selection{E,T}.Join{T2}" />Join function, which handles Enter and Exit selections for you.</remarks>
+    ///<param name="binding">The data collection that should be bound to all groups.</param>
     public Selection<TElementType,TNewDataType> Bind<TNewDataType>(IReadOnlyCollection<TNewDataType> bindings)
     {
       Debug.Assert(bindings != null, "Bindings mustn't be null");
       return Bind((a, b) => bindings);
     }
 
+    ///<summary>Binds this selection to a collection of data. This creates a new selection with Enter and Exit selections, which can then be used to create missing elements and/or delete excess elements.</summary>
+    ///<remarks>In a typical case, you would use <see href="Selection{E,T}.Join{T2}" />Join function, which handles Enter and Exit selections for you.</remarks>
+    ///<param name="bindingFunc">A callback function that is called once for each group, and should provide the data collection for this group. It's parameters are parent's data object and the collection of elements.</param>
     public Selection<TElementType,TNewDataType> Bind<TNewDataType>( Func<object, IReadOnlyCollection<TElementType>, IReadOnlyCollection<TNewDataType>> bindingFunc)
     {
       var enters = new EnterSelection<TNewDataType>.EnterGroup[_groups.Count];
@@ -205,6 +231,9 @@ namespace U3
       );
     }
 
+    ///<summary>Creates all elements that were missing during Bind, deletes all excess elements. Then it merges newly created elements with those already existing, and returns this merged selection.</summary>
+    ///<remarks>This function can only be called after calling Bind.</remarks>
+    ///<param name="treeAsset">A subtree that is inserted at given position. Only it's first root child is used, to avoid creating an extra layer of elements.</param>
     public Selection<VisualElement,TDataType> Join( VisualTreeAsset treeAsset )
     {
       var newSelection = Enter.Append(treeAsset).MergeFrom(this);
@@ -212,6 +241,10 @@ namespace U3
       return newSelection;
     }
 
+
+    ///<summary>Creates all elements that were missing during Bind, deletes all excess elements. Then it merges newly created elements with those already existing, and returns this merged selection.</summary>
+    ///<remarks>This function can only be called after calling Bind.</remarks>
+    ///<typeparam name="T">Type of element to be created.</typeparam>
     public Selection<TElementType,TDataType> Join<T>()
       where T : TElementType, new()
     {
@@ -220,6 +253,8 @@ namespace U3
       return newSelection;
     }
 
+    ///<summary>Orders all elements in this selection based on the provided order of data elements.</summary>
+    ///<remarks>In most cases, FragileOrder can be used, and it's much faster.</remarks>
     public Selection<TElementType, TDataType> RobustOrder(IReadOnlyCollection<TDataType> order)
     {
       foreach (var groupWithData in _groups)
