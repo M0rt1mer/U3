@@ -8,6 +8,8 @@ namespace U3
   #region type-specific-extensions
   public static class SelectionModification
   { 
+    ///<summary>Sets label for each element in selection.</summary>
+    ///<param name="dataFunc">A function that is called for each element. It is given the element, the bound datum, and expected to return the label.</param>
     public static Selection<TElementType, TDataType> Label<TElementType,TDataType>(this Selection<TElementType, TDataType> sel, Func<TElementType,TDataType,string> dataFunc)
       where TElementType : TextElement
     {
@@ -39,6 +41,8 @@ namespace U3
 
     #region dataOperations
 
+    ///<summary>Calls a function for each element in selection.</summary>
+    ///<param name="dataFunc">A function that is called for each element. It is given the element, the bound datum, and the element's order within it's group.</param>
     public Selection<TElementType,TDataType> Call(CallDelegate dlgt)
     {
       foreach (var groupWithData in _groups)
@@ -52,6 +56,8 @@ namespace U3
       return this;
     }
 
+    ///<summary>Adds a class for each element in selection.</summary>
+    ///<remarks>You probably want to use the Classed function, which is way stronger</remarks>
     public Selection<TElementType,TDataType> AddClass(string className)
     {
       foreach (var groupWithData in _groups)
@@ -61,6 +67,8 @@ namespace U3
       return this;
     }
 
+    ///<summary>For each element in selection either adds or removes given class.</summary>
+    ///<param name="hasClass">Whether the class should be added or removed.</param>
     public Selection<TElementType, TDataType> Classed(string className, bool hasClass)
     {
       foreach (var groupWithData in _groups)
@@ -70,6 +78,8 @@ namespace U3
       return this;
     } 
     
+    ///<summary>For each element in selection either adds or removes given class.</summary>
+    ///<param name="hasClassFunc">A function called for each element, indicating the class should be added or removed. It is passed element, it's darum, and the element's order in it's group.</param>
     public Selection<TElementType, TDataType> Classed(string className, Func<TElementType, TDataType, int, bool> hasClassFunc)
     {
       foreach (var groupWithData in _groups)
@@ -83,6 +93,7 @@ namespace U3
       return this;
     }
 
+    ///<summary>Sets each element in selection to either Enabled or Disabled.</summary>
     public Selection<TElementType,TDataType> SetEnabled(bool enabled)
     {
       foreach (var groupWithData in _groups)
@@ -92,6 +103,7 @@ namespace U3
       return this;
     }
 
+    ///<summary>Sets each element in selection to either Visible or Hidden.</summary>
     public Selection<TElementType, TDataType> SetVisible(bool visible)
     {
       foreach (var groupWithData in _groups)
@@ -101,6 +113,7 @@ namespace U3
       return this;
     }
 
+    ///<summary>Sets each element in selection to either Visible and Enabled; or Hidden and Disabled.</summary>
     public Selection<TElementType, TDataType> SetVisibleAndEnabled(bool enabled)
     {
       foreach (var groupWithData in _groups)
@@ -114,6 +127,10 @@ namespace U3
       return this;
     }
 
+    ///<summary>Sets a callback for each element in selection.</summary>
+    ///<remarks>Only one callback function for each element can be set.</remarks>
+    ///<remarks>Events only react to AtTarget phase of event resolution.</remarks>
+    ///<param name="callback">The callback function that is called when the event is fired. It is passed the element, it's bound datum, it's order in it's group and the original event.</param>
     public Selection<TElementType, TDataType> OnEvent<TEventType>(Action<TElementType, TDataType, int, TEventType> callback, TrickleDown trickle = TrickleDown.NoTrickleDown)
       where TEventType : EventBase<TEventType>, new()
     {
@@ -139,6 +156,7 @@ namespace U3
 
     #region structureOperations
 
+    ///<summary>Deletes all selected elements from their hierarchies.</summary>
     public Selection<TElementType,TDataType> Remove()
     {
       foreach (var groupWithData in _groups)
@@ -151,6 +169,8 @@ namespace U3
       return new Selection<TElementType,TDataType>();
     }
 
+    ///<summary>For each element, a child of given type is created.</summary>
+    ///<returns>A new selection containing the newly created children.</returns>
     public Selection<T,object> Append<T>() where T:VisualElement, new()
       => new Selection<T,object>(
         _groups.Select( groupWithData => 
@@ -159,6 +179,8 @@ namespace U3
         ).ToArray()
       );
 
+    ///<summary>For each element, the given VisualTreeAsset is instantiated and added as a child.</summary>
+    ///<returns>A new selection containing the newly created children.</returns>
     public Selection<VisualElement,object> Append(VisualTreeAsset asset)
       => new Selection<VisualElement,object>(
         _groups.Select(groupWithData => 
