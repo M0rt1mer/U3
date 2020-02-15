@@ -66,29 +66,20 @@ namespace U3
     
     #region selecting
 
-    public Selection<T,object> SelectAll<T>(string name) where T : VisualElement
+    public Selection<T,object> SelectAll<T>(string name = null, string @class = null) where T : VisualElement
     {
       return new Selection<T,object>(_groups.SelectMany
         (
           group => @group.Elements.Select(
-            element => new Selection<T,object>.GroupWithData(element, element.Children().Is<T>().Where( child => (name==null || child.name.Equals(name) ) ).ToArray()) )
+            element => new Selection<T,object>.GroupWithData(element, 
+              element.Children().Is<T>().Where( child => (name==null || child.name.Equals(name) ) && (@class == null || child.ClassListContains(@class)) ).ToArray()) )
         ).ToArray()
       );
     }
 
-    public Selection<VisualElement,object> SelectAll()
+    public Selection<VisualElement,object> SelectAll(string name = null, string @class = null)
     {
-      return SelectAll<VisualElement>(null);
-    }
-
-    public Selection<T,object> SelectAll<T>() where T : VisualElement
-    {
-      return SelectAll<T>(null);
-    }
-
-    public Selection<VisualElement,object> SelectAll(string name)
-    {
-      return this.SelectAll<VisualElement>(name);
+      return SelectAll<VisualElement>(null, null);
     }
 
     public Selection<VisualElement,object> Find(string name)
@@ -218,6 +209,20 @@ namespace U3
       var newSelection = this.MergeFrom(Enter.Append<T>());
       Exit.Remove();
       return newSelection;
+    }
+
+    /// <summary>
+    /// Shortcut for selecting all children of given type, name and class, binding it to it's parent's data, and Joining it.
+    /// </summary>
+    /// <remarks>In short, this creates a single child for each selected elements</remarks>
+    /// <typeparam name="TNewElementType"></typeparam>
+    /// <param name="name"></param>
+    /// <param name="class"></param>
+    /// <returns></returns>
+    public Selection<TNewElementType, TDataType> ForwardSingleData<TNewElementType>(string name = null, string @class = null)
+    where TNewElementType : VisualElement, new()
+    {
+      return SelectAll<TNewElementType>(name,@class).Bind((o, _) => new TDataType[]{ (TDataType) o}).Join<TNewElementType>();
     }
 
     public Selection<TElementType, TDataType> RobustOrder(IReadOnlyCollection<TDataType> order)

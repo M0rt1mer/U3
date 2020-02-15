@@ -15,6 +15,13 @@ namespace U3
       return sel;
     }
 
+    public static Selection<TElementType, TDataType> Label<TElementType, TDataType>(this Selection<TElementType, TDataType> sel, string data)
+      where TElementType : TextElement
+    {
+      sel.Groups.ForEach(group => group.Elements.ForEach(label => label.text = data));
+      return sel;
+    }
+
     public static Selection<TElementType, TDataType> Texture<TElementType, TDataType>(this Selection<TElementType, TDataType> sel, Func<TElementType, TDataType, Texture> dataFunc)
       where TElementType : Image
     {
