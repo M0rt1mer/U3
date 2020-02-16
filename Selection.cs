@@ -180,7 +180,7 @@ namespace U3
     ///<summary>Binds this selection to a collection of data. This creates a new selection with Enter and Exit selections, which can then be used to create missing elements and/or delete excess elements.</summary>
     ///<remarks>In a typical case, you would use <see href="Selection{E,T}.Join{T2}" />Join function, which handles Enter and Exit selections for you.</remarks>
     ///<param name="bindingFunc">A callback function that is called once for each group, and should provide the data collection for this group. It's parameters are parent's data object and the collection of elements.</param>
-    public Selection<TElementType,TNewDataType> Bind<TNewDataType>( Func<object, IReadOnlyCollection<TElementType>, IReadOnlyCollection<TNewDataType>> bindingFunc)
+    public Selection<TElementType,TNewDataType> Bind<TNewDataType>( Func<object, IReadOnlyCollection<TElementType>, IEnumerable<TNewDataType>> bindingFunc)
     {
       var enters = new EnterSelection<TNewDataType>.EnterGroup[_groups.Count];
       var updates = new Selection<TElementType,TNewDataType>.GroupWithData[_groups.Count];
@@ -203,19 +203,15 @@ namespace U3
     }
 
     private static Tuple<EnterSelection<TNewDataType>.EnterGroup, Selection<TElementType,TNewDataType>.GroupWithData, Selection<TElementType,TNewDataType>.GroupWithData> Bind<TNewDataType>(GroupWithData group,
-      IReadOnlyCollection<TNewDataType> bindings)
+      IEnumerable<TNewDataType> bindings)
     {
-      var dataLookup = new HashSet<TNewDataType>(bindings);
-      var existingData = new HashSet<object>(group.Elements.Select(element => element.GetBoundData())); //type of old data is unknown at this point
+      var remainingUnboundData = bindings.ToList(); //create a copy
 
-      var exit =   group.Elements.Where(element => !(element.GetBoundData() is TNewDataType boundDataTyped) || !dataLookup.Contains( boundDataTyped ) ).ToArray();
-      var update = group.Elements.Where(element =>   element.GetBoundData() is TNewDataType boundDataTyped  &&  dataLookup.Contains( boundDataTyped ) ).ToArray();
-
-      dataLookup.ExceptWith( existingData.Is<TNewDataType>() );
-      var enter = dataLookup;
+      var update = group.Elements.Where( visualElement => visualElement.GetBoundData() is TNewDataType boundDataTyped && remainingUnboundData.RemoveIfPossible(boundDataTyped) ).ToArray();
+      var exit = group.Elements.Except(update);
 
       return Tuple.Create(
-        new EnterSelection<TNewDataType>.EnterGroup( group.GroupParent, enter ),
+        new EnterSelection<TNewDataType>.EnterGroup( group.GroupParent, remainingUnboundData),
         new Selection<TElementType,TNewDataType>.GroupWithData(group.GroupParent, update),
         new Selection<TElementType,TNewDataType>.GroupWithData(group.GroupParent, exit)
       );
@@ -310,20 +306,25 @@ namespace U3
     /// * all elements in each group have the same parent element, and it is the groups parent (this will not hold if the selection was created by Find function)
     /// * the parent doesn't have any elements other than the selected elements
     /// * the set of data, bound to selected elements, and the set of data, provided by bindingFnc, are identical (this can be ensured by calling Bind+Join on the same dataset
-    /// * data in the set are unique
     /// Additionally, the data set is expected to be small, as no acceleration structure is built for searching data set
     /// </summary>
     /// <param name="bindingFunc">A function that returns the binding set for (parent's data, element list)</param>
     /// <returns>A selection where elements are ordered correctly</returns>
-    public Selection<TElementType, TDataType> FragileOrder(Func<object, IReadOnlyCollection<TElementType>, IReadOnlyCollection<TDataType>> bindingFunc)
+    public Selection<TElementType, TDataType> FragileOrder(Func<object, IReadOnlyCollection<TElementType>, IEnumerable<TDataType>> bindingFunc)
     {
       return new Selection<TElementType, TDataType>(
         _groups.Select(groupWithData =>
           {
             var collection = bindingFunc(groupWithData.GroupParent.GetBoundData(), groupWithData.Elements);
             groupWithData.Elements.ForEach(e => e.parent.Remove(e));
-            var sortedElements = collection.Select(datum =>groupWithData.Elements.First(element =>
-                element.GetBoundData() is TDataType typedData && EqualityComparer<TDataType>.Default.Equals(typedData, datum))).ToArray();
+
+            var elementsCopy = groupWithData.Elements.ToList();
+
+            var sortedElements = collection.Select(datum => elementsCopy.PopFirstOrDefault(element =>
+                element.GetBoundData() is TDataType typedData && EqualityComparer<TDataType>.Default.Equals(typedData, datum)))
+              .ToArray();
+
+
             sortedElements.ForEach( element => groupWithData.GroupParent.Add(element) );
             return new GroupWithData(groupWithData.GroupParent, sortedElements);
           }
