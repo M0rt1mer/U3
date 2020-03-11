@@ -231,10 +231,10 @@ namespace U3
     ///<summary>Creates all elements that were missing during Bind, deletes all excess elements. Then it merges newly created elements with those already existing, and returns this merged selection.</summary>
     ///<remarks>This function can only be called after calling Bind.</remarks>
     ///<typeparam name="T">Type of element to be created.</typeparam>
-    public Selection<TElementType,TDataType> Join<T>()
+    public Selection<TElementType,TDataType> Join<T>(string name = null)
       where T : TElementType, new()
     {
-      var newSelection = this.MergeFrom(Enter.Append<T>());
+      var newSelection = this.MergeFrom(Enter.Append<T>(name));
       Exit.Remove();
       return newSelection;
     }
@@ -250,7 +250,7 @@ namespace U3
     public Selection<TNewElementType, TDataType> ForwardSingleData<TNewElementType>(string name = null, string @class = null)
     where TNewElementType : VisualElement, new()
     {
-      return SelectAll<TNewElementType>(name,@class).Bind((o, _) => new TDataType[]{ (TDataType) o}).Join<TNewElementType>();
+      return SelectAll<TNewElementType>(name,@class).Bind((o, _) => new TDataType[]{ (TDataType) o}).Join<TNewElementType>(name);
     }
 
     ///<summary>Orders all elements in this selection based on the provided order of data elements.</summary>

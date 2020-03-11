@@ -27,11 +27,11 @@ namespace U3
 
     public EnterSelection() {}
 
-    public Selection<T,DataType> Append<T>() where T : VisualElement, new()
+    public Selection<T,DataType> Append<T>(string name = null) where T : VisualElement, new()
       => new Selection<T,DataType>(
         Groups.Select(groupWithData =>
           new Selection<T,DataType>.GroupWithData(groupWithData.GroupParent,
-            groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(new T()).BindData(dataBind)).ToArray())
+            groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(new T(), name).BindData(dataBind)).ToArray())
         ).ToArray()
       );
 

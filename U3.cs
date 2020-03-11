@@ -26,10 +26,12 @@ namespace U3
       return new Selection<VisualElement, object>(new VisualElement[] { from }).Find<T>(name);
     }
     
-    public static T Append<T>(this VisualElement element, T newChild)
+    public static T Append<T>(this VisualElement element, T newChild, string name = null)
       where T: VisualElement
     {
       element.Add(newChild);
+      if (name != null)
+        newChild.name = name;
       return newChild;
     }
 
