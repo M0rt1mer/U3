@@ -83,18 +83,23 @@ namespace U3
         groupWithData.Elements.ForEach(element => element.EnableInClassList(className, hasClass));
       }
       return this;
-    } 
-    
-    ///<summary>For each element in selection either adds or removes given class.</summary>
-    ///<param name="hasClassFunc">A function called for each element, indicating the class should be added or removed. It is passed element, it's darum, and the element's order in it's group.</param>
-    public Selection<TElementType, TDataType> Classed(string className, Func<TElementType, TDataType, int, bool> hasClassFunc)
+    }
+
+    /// <summary>For each element in selection either adds or removes given class.</summary>
+    /// <param name="hasClassFunc">A function called for each element, indicating the class should be added or removed. It is passed element, it's darum, and the element's order in it's group.</param>
+    /// <param name="onChanged">A callback function called for each element where the class changes. Params are parent, element, data</param>
+    public Selection<TElementType, TDataType> Classed(string className, Func<TElementType, TDataType, int, bool> hasClassFunc, Action<VisualElement, TElementType, TDataType> onChanged = null)
     {
       foreach (var groupWithData in _groups)
       {
         var id = 0;
         foreach (var visualElement in groupWithData.Elements)
         {
-          visualElement.EnableInClassList(className, hasClassFunc(visualElement, (TDataType) visualElement.GetBoundData(), id++));
+          var shouldContain = hasClassFunc(visualElement, (TDataType) visualElement.GetBoundData(), id++);
+          if (visualElement.ClassListContains(className) == shouldContain) 
+            continue;
+          visualElement.EnableInClassList(className, shouldContain);
+          onChanged?.Invoke( groupWithData.GroupParent, visualElement, (TDataType) visualElement.GetBoundData() );
         }
       }
       return this;

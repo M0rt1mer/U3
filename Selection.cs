@@ -33,9 +33,9 @@ namespace U3
 
     #region attributes
 
-    private IReadOnlyCollection<GroupWithData> _groups;
-    private EnterSelection<TDataType> _enterSelection;
-    private Selection<TElementType,TDataType> _exitSelection;
+    private readonly IReadOnlyCollection<GroupWithData> _groups;
+    private readonly EnterSelection<TDataType> _enterSelection;
+    private readonly Selection<TElementType,TDataType> _exitSelection;
     
     #endregion
     
@@ -69,6 +69,13 @@ namespace U3
       _exitSelection = null;
     }
 
+    internal Selection(IReadOnlyCollection<GroupWithData> groups, EnterSelection<TDataType> enter, Selection<TElementType, TDataType> exit)
+    {
+      _groups = groups;
+      _enterSelection = enter;
+      _exitSelection = exit;
+    }
+
     internal Selection(IEnumerable<GroupWithData> groups) : this(groups.ToArray()) {}
 
     public Selection()
@@ -86,7 +93,7 @@ namespace U3
         (
           group => @group.Elements.Select(
             element => new Selection<T,object>.GroupWithData(element, 
-              element.Children().Is<T>().Where( child => (name==null || child.name.Equals(name) ) && (@class == null || child.ClassListContains(@class)) ).ToArray()) )
+              element.Children().OfType<T>().Where( child => (name==null || child.name.Equals(name) ) && (@class == null || child.ClassListContains(@class)) ).ToArray()) )
         ).ToArray()
       );
     }
@@ -199,7 +206,7 @@ namespace U3
 
       var enterSelection = new EnterSelection<TNewDataType>(enters);
       var exitSelection = new Selection<TElementType,TNewDataType>(exits);
-      return new Selection<TElementType,TNewDataType>(updates) { _enterSelection = enterSelection, _exitSelection = exitSelection };
+      return new Selection<TElementType,TNewDataType>(updates, enterSelection, exitSelection);
     }
 
     private static Tuple<EnterSelection<TNewDataType>.EnterGroup, Selection<TElementType,TNewDataType>.GroupWithData, Selection<TElementType,TNewDataType>.GroupWithData> Bind<TNewDataType>(GroupWithData group,
