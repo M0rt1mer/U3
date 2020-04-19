@@ -6,24 +6,24 @@ namespace U3
   public static class U3
   {
 
-    public static Selection<VisualElement,object> SelectAll(this VisualElement from, string name)
+    public static Selection<VisualElement,object, object> SelectAll(this VisualElement from, string name)
     {
-      return new Selection<VisualElement,object>(new VisualElement[]{from}).SelectAll(name);
+      return new Selection<VisualElement,object, object>(new VisualElement[]{from}).SelectAll(name);
     }
 
-    public static Selection<T,object> SelectAll<T>(this VisualElement from, string name) where T:VisualElement
+    public static Selection<T,object, object> SelectAll<T>(this VisualElement from, string name) where T:VisualElement
     {
-      return new Selection<VisualElement, object>(new VisualElement[] { from }).SelectAll<T>(name);
+      return new Selection<VisualElement, object, object>(new VisualElement[] { from }).SelectAll<T>(name);
     }
 
-    public static Selection<VisualElement,object> Find(this VisualElement from, string name)
+    public static Selection<VisualElement,object, object> Find(this VisualElement from, string name)
     {
-      return new Selection<VisualElement,object>(new VisualElement[] { from }).Find(name);
+      return new Selection<VisualElement,object, object>(new VisualElement[] { from }).Find(name);
     }
 
-    public static Selection<T,object> Find<T>(this VisualElement from, string name) where T : VisualElement
+    public static Selection<T,object, object> Find<T>(this VisualElement from, string name) where T : VisualElement
     {
-      return new Selection<VisualElement, object>(new VisualElement[] { from }).Find<T>(name);
+      return new Selection<VisualElement, object, object>(new VisualElement[] { from }).Find<T>(name);
     }
     
     public static T Append<T>(this VisualElement element, T newChild, string name = null)
@@ -38,13 +38,21 @@ namespace U3
     public static T BindData<T>(this T element, object data)
       where T:VisualElement
     {
-      element.userData = data;
+      element.userData = new DataBinding(data, element);
       return element;
     }
 
-    public static object GetBoundData(this VisualElement element)
+    internal static DataBinding GetOrCreateDataBinding(this VisualElement element)
     {
-      return element.userData;
+      DataBinding dBinding = element.userData as DataBinding;
+      if (dBinding == null)
+        element.userData = dBinding = new DataBinding(null, element);
+      return dBinding;
+    }
+
+    internal static object GetBoundData(this VisualElement element)
+    {
+      return element.GetOrCreateDataBinding()?.BoundData;
     }
 
     public static VisualElement FirstChild(this VisualElement element)

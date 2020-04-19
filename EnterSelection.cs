@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
-  public class EnterSelection<DataType>
+  public class EnterSelection<DataType,TParentDataType>
   {
 
     public struct EnterGroup
@@ -27,18 +27,18 @@ namespace U3
 
     public EnterSelection() {}
 
-    public Selection<T,DataType> Append<T>(string name = null) where T : VisualElement, new()
-      => new Selection<T,DataType>(
+    public Selection<T,DataType,TParentDataType> Append<T>(string name = null) where T : VisualElement, new()
+      => new Selection<T,DataType,TParentDataType>(
         Groups.Select(groupWithData =>
-          new Selection<T,DataType>.GroupWithData(groupWithData.GroupParent,
+          new Selection<T,DataType,TParentDataType>.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(new T(), name).BindData(dataBind)).ToArray())
         ).ToArray()
       );
 
-    public Selection<VisualElement,DataType> Append(VisualTreeAsset asset)
-      => new Selection<VisualElement,DataType>(
+    public Selection<VisualElement,DataType,TParentDataType> Append(VisualTreeAsset asset)
+      => new Selection<VisualElement,DataType,TParentDataType>(
             Groups.Select(groupWithData =>
-              new Selection<VisualElement,DataType>.GroupWithData(groupWithData.GroupParent,
+              new Selection<VisualElement,DataType,TParentDataType>.GroupWithData(groupWithData.GroupParent,
             groupWithData.Bindings.Select(dataBind => groupWithData.GroupParent.Append(asset.CloneTree().contentContainer.FirstChild()).BindData(dataBind)).ToArray())
             ).ToArray()
     );
