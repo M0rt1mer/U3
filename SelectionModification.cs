@@ -5,6 +5,8 @@ using UnityEngine.UIElements;
 
 namespace U3
 {
+  public delegate DelayedDataChange<TValueType> OnChangeCallSimple<TValueType>(VisualElement element, TValueType oldValue, TValueType newValue);
+
   #region type-specific-extensions
   public static class SelectionModification
   { 
@@ -81,25 +83,63 @@ namespace U3
       return this;
     }
 
+
+    public delegate DelayedDataChange<TValueType> OnChangeCall<TValueType>(TElementType element, TDataType data, TParentDataType parentData, TValueType oldValue, TValueType newValue);
+
     /// <summary>For each element in selection either adds or removes given class.</summary>
     /// <param name="ussClass">The class that should be changed</param>
     /// <param name="hasClass">Whether the class should be added or removed.</param>
     /// <param name="onChange">Function called when the value is different from the new value. Return value can be used to delay the actual change.</param>
-    public Selection<TElementType,TDataType,TParentDataType> Classed(string ussClass, bool hasClass, OnChangeCall<bool> onChange = null)
+    public Selection<TElementType,TDataType,TParentDataType> Classed(string ussClass, bool hasClass, OnChangeCall<bool> onChange)
     {
       ChangeValue(new ClassAccessor(ussClass), hasClass, onChange);
       return this;
     }
 
-    public delegate DelayedDataChange<TValueType> OnChangeCall<TValueType>(TElementType element, TDataType data, TParentDataType parentData, TValueType oldValue, TValueType newValue);
+    public Selection<TElementType, TDataType, TParentDataType> Classed(string ussClass, bool hasClass, OnChangeCallSimple<bool> onChange = null)
+    {
+      ChangeValue(new ClassAccessor(ussClass), hasClass, onChange);
+      return this;
+    }
 
     /// <summary>For each element in selection either adds or removes given class.</summary>
     /// <param name="hasClassFunc">A function called for each element, indicating the class should be added or removed. It is passed element, it's darum, and the element's order in it's group.</param>
     /// <param name="onChanged">A callback function called for each element where the class changes. Params are parent, element, data</param>
     /// <param name="onChange">Function called when the value is different from the new value. Return value can be used to delay the actual change.</param>
-    public Selection<TElementType, TDataType,TParentDataType> Classed(string ussClass, Func<TElementType, TDataType, bool> hasClassFunc, OnChangeCall<bool> onChange = null)
+    public Selection<TElementType, TDataType,TParentDataType> Classed(string ussClass, Func<TElementType, TDataType, bool> hasClassFunc, OnChangeCall<bool> onChange)
     {
       ChangeValue(new ClassAccessor(ussClass), hasClassFunc, onChange);
+      return this;
+    }
+
+    public Selection<TElementType, TDataType, TParentDataType> Classed(string ussClass, Func<TElementType, TDataType, bool> hasClassFunc, OnChangeCallSimple<bool> onChange = null)
+    {
+      ChangeValue(new ClassAccessor(ussClass), hasClassFunc, onChange);
+      return this;
+    }
+
+    public Selection<TElementType, TDataType, TParentDataType> ChangeValue<TValueType>(Accessor<TValueType> accessor, TValueType value, OnChangeCallSimple<TValueType> onChangeFunc = null)
+    {
+      Groups.ForEach(group =>
+      {
+        @group.Elements.ForEach(element =>
+        {
+          element.GetOrCreateDataBinding().ChangeValue(accessor, value, (oldValue, newValue) => onChangeFunc?.Invoke(element, oldValue, newValue));
+        });
+      });
+      return this;
+    }
+
+    public Selection<TElementType, TDataType, TParentDataType> ChangeValue<T>(Accessor<T> accessor, Func<TElementType, TDataType, T> valueFunc, OnChangeCallSimple<T> onChangeFunc = null)
+    {
+      Groups.ForEach(group =>
+      {
+        @group.Elements.ForEach(element =>
+        {
+          TDataType data = (TDataType)element.GetBoundData();
+          element.GetOrCreateDataBinding().ChangeValue(accessor, valueFunc(element, data), (oldValue, newValue) => onChangeFunc?.Invoke(element, oldValue, newValue));
+        });
+      });
       return this;
     }
 

@@ -137,6 +137,7 @@ namespace U3
   public class ValueAnimatedDataChange<T> : DelayedDataChange<T>
   {
     public ValueAnimation<T> ValueAnimation { get; }
+    public bool toValueAlreadySet = false;
 
     public ValueAnimatedDataChange(VisualElement elem, int durationMs)
     {
@@ -148,7 +149,8 @@ namespace U3
     {
       base.Initialize(accessor, elem, oldValue, newValue);
       ValueAnimation.from = oldValue;
-      ValueAnimation.to = newValue;
+      if(!toValueAlreadySet)
+        ValueAnimation.to = newValue;
       ValueAnimation.valueUpdated = accessor.SetValue;
       ValueAnimation.onAnimationCompleted = Finished;
     }
@@ -169,7 +171,7 @@ namespace U3
   {  
     public abstract T GetValue(VisualElement elem);
     public abstract void SetValue(VisualElement elem, T value);
-    public virtual bool Equals(IAccessor other) => Object.ReferenceEquals(this, other);
+    public virtual bool Equals(IAccessor other) => ReferenceEquals(this, other);
     object IAccessor.GetValue(VisualElement elem) => GetValue(elem);
   }
 

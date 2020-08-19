@@ -8,22 +8,22 @@ namespace U3
 
     public static Selection<VisualElement,object, object> SelectAll(this VisualElement from, string name)
     {
-      return new Selection<VisualElement,object, object>(new VisualElement[]{from}).SelectAll(name);
+      return new Selection<VisualElement,object, object>( new[]{from} ).SelectAll(name);
     }
 
     public static Selection<T,object, object> SelectAll<T>(this VisualElement from, string name) where T:VisualElement
     {
-      return new Selection<VisualElement, object, object>(new VisualElement[] { from }).SelectAll<T>(name);
+      return new Selection<VisualElement, object, object>( new[] { from }).SelectAll<T>(name);
     }
 
     public static Selection<VisualElement,object, object> Find(this VisualElement from, string name)
     {
-      return new Selection<VisualElement,object, object>(new VisualElement[] { from }).Find(name);
+      return new Selection<VisualElement,object, object>( new[] { from } ).Find(name);
     }
 
     public static Selection<T,object, object> Find<T>(this VisualElement from, string name) where T : VisualElement
     {
-      return new Selection<VisualElement, object, object>(new VisualElement[] { from }).Find<T>(name);
+      return new Selection<VisualElement, object, object>( new[] { from } ).Find<T>(name);
     }
     
     public static T Append<T>(this VisualElement element, T newChild, string name = null)

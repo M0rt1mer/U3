@@ -83,26 +83,27 @@ namespace U3
   {
     public AnimationBuilderOnChange(int duration) : base(duration) { }
 
-    internal ValueAnimatedDataChange<TValueType> Build(VisualElement element, TValueType oldValue, TValueType newValue)
+    public ValueAnimatedDataChange<TValueType> Build(VisualElement element, TValueType oldValue, TValueType newValue)
     {
       var valueAnimatedDataChange = new ValueAnimatedDataChange<TValueType>(element, _duration);
       _actions?.Invoke(oldValue, newValue, valueAnimatedDataChange);
       return valueAnimatedDataChange;
     }
 
-    public Selection<TElementType, TDataType, TParentDataType>.OnChangeCall<TValueType> Prepare<TElementType, TDataType, TParentDataType>()
-      where TElementType:VisualElement
-    {
-      return (element, data, parentData, value, newValue) => Build(element, value, newValue);
-    }
+    public static implicit operator OnChangeCallSimple<TValueType>(AnimationBuilderOnChange<TValueType> builder) => builder.Build;
   }
 
   public static class AnimationBuilderHelpers
   {
-    public static AnimBuilderType Curve<AnimBuilderType>(this AnimBuilderType builder, AnimationCurve curve)
+    public static AnimBuilderType Curve<AnimBuilderType>(this AnimBuilderType builder, AnimationCurve curve, float peak)
       where AnimBuilderType : AnimationBuilderBase<float>
     {
-      builder.AddModifier(((oldValue, newValue, vadc) => vadc.ValueAnimation.Ease(curve.Evaluate)));
+      builder.AddModifier(((oldValue, newValue, vadc) =>
+      {
+        vadc.ValueAnimation.to = peak;
+        vadc.ValueAnimation.Ease(curve.Evaluate);
+        vadc.toValueAlreadySet = true;
+      }));
       return builder;
     }
   }
