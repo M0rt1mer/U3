@@ -292,11 +292,14 @@ namespace U3
     public static void UnifiedCallbackDelegatable<TEventType>(TEventType @event, Action<TEventType> action)
     where TEventType : EventBase<TEventType>, new()
     {
-      if (@event.propagationPhase != PropagationPhase.AtTarget)
+      if (@event.propagationPhase != PropagationPhase.AtTarget && @event.propagationPhase != PropagationPhase.BubbleUp)
+        return;
+      if (@event.isPropagationStopped)
         return;
       try
       {
         action.Invoke(@event);
+        @event.StopPropagation();
       }
       catch (Exception e)
       {
