@@ -89,13 +89,13 @@ namespace U3
 
     ///<summary>Selects children of currently selected elements, with given class type and name.</summary>
     ///<remarks>This function returns a newly constructed selection, with a separate group for each selected element in the original group.</remarks>
-    public Selection<T,object,TDataType> SelectAll<T>(string name = null, string @class = null) where T : VisualElement
+    public Selection<T,object,TDataType> SelectAll<T>(string name = null, string uClass = null) where T : VisualElement
     {
       return new Selection<T,object, TDataType>(_groups.SelectMany
         (
           group => @group.Elements.Select(
             element => new Selection<T,object, TDataType>.GroupWithData(element, 
-              element.Children().OfType<T>().Where( child => (name==null || child.name.Equals(name) ) && (@class == null || child.ClassListContains(@class)) ).ToArray()) )
+              element.Children().OfType<T>().Where( child => (name==null || child.name == name) && (uClass == null || child.ClassListContains(uClass)) ).ToArray()) )
         ).ToArray()
       );
     }
@@ -243,12 +243,18 @@ namespace U3
     /// <remarks>In short, this creates a single child for each selected elements</remarks>
     /// <typeparam name="TNewElementType"></typeparam>
     /// <param name="name"></param>
-    /// <param name="class"></param>
+    /// <param name="uClass"></param>
     /// <returns></returns>
-    public Selection<TNewElementType,TDataType,TDataType> ForwardSingleData<TNewElementType>(string name = null, string @class = null)
+    public Selection<TNewElementType,TDataType,TDataType> ForwardSingleData<TNewElementType>(string name = null, string uClass = null)
     where TNewElementType : VisualElement, new()
     {
-      return SelectAll<TNewElementType>(name,@class).Bind((o, _) => new TDataType[]{ (TDataType) o}).Join<TNewElementType>(name);
+      var newSelection = SelectAll<TNewElementType>(name, uClass).Bind((o, _) => new []{ (TDataType) o}).Join<TNewElementType>(name);
+      if (uClass != null)
+      {
+        newSelection.Classed(uClass, true);
+      }
+
+      return newSelection;
     }
 
     ///<summary>Orders all elements in this selection based on the provided order of data elements.</summary>
