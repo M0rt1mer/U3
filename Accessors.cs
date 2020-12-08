@@ -25,7 +25,10 @@ namespace U3
   {
     public override int GetValue(VisualElement elem)
     {
-      int.TryParse(((TextElement) elem).text, out var result);
+      if(!int.TryParse(((TextElement) elem).text, out var result))
+      {
+        return int.MinValue;
+      }
       return result;
     }
 
